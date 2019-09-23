@@ -52,16 +52,4 @@ public class LitemallRegionService {
         return regionMapper.selectByExample(example);
     }
 
-    public int countSelective(String name, Integer code, Integer page, Integer size, String sort, String order) {
-        LitemallRegionExample example = new LitemallRegionExample();
-        LitemallRegionExample.Criteria criteria = example.createCriteria();
-
-        if (!StringUtils.isEmpty(name)) {
-            criteria.andNameLike("%" + name + "%");
-        }
-        if (code != null) {
-            criteria.andCodeEqualTo(code);
-        }
-        return (int) regionMapper.countByExample(example);
-    }
 }

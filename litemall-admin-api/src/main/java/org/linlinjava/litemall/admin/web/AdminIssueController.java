@@ -15,9 +15,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.NotNull;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/issue")
@@ -29,7 +27,7 @@ public class AdminIssueController {
     private LitemallIssueService issueService;
 
     @RequiresPermissions("admin:issue:list")
-    @RequiresPermissionsDesc(menu={"商场管理" , "通用问题"}, button="查询")
+    @RequiresPermissionsDesc(menu = {"商场管理", "通用问题"}, button = "查询")
     @GetMapping("/list")
     public Object list(String question,
                        @RequestParam(defaultValue = "1") Integer page,
@@ -37,12 +35,7 @@ public class AdminIssueController {
                        @Sort @RequestParam(defaultValue = "add_time") String sort,
                        @Order @RequestParam(defaultValue = "desc") String order) {
         List<LitemallIssue> issueList = issueService.querySelective(question, page, limit, sort, order);
-        int total = issueService.countSelective(question, page, limit, sort, order);
-        Map<String, Object> data = new HashMap<>();
-        data.put("total", total);
-        data.put("items", issueList);
-
-        return ResponseUtil.ok(data);
+        return ResponseUtil.okList(issueList);
     }
 
     private Object validate(LitemallIssue issue) {
@@ -58,7 +51,7 @@ public class AdminIssueController {
     }
 
     @RequiresPermissions("admin:issue:create")
-    @RequiresPermissionsDesc(menu={"商场管理" , "通用问题"}, button="添加")
+    @RequiresPermissionsDesc(menu = {"商场管理", "通用问题"}, button = "添加")
     @PostMapping("/create")
     public Object create(@RequestBody LitemallIssue issue) {
         Object error = validate(issue);
@@ -77,7 +70,7 @@ public class AdminIssueController {
     }
 
     @RequiresPermissions("admin:issue:update")
-    @RequiresPermissionsDesc(menu={"商场管理" , "通用问题"}, button="编辑")
+    @RequiresPermissionsDesc(menu = {"商场管理", "通用问题"}, button = "编辑")
     @PostMapping("/update")
     public Object update(@RequestBody LitemallIssue issue) {
         Object error = validate(issue);
@@ -92,7 +85,7 @@ public class AdminIssueController {
     }
 
     @RequiresPermissions("admin:issue:delete")
-    @RequiresPermissionsDesc(menu={"商场管理" , "通用问题"}, button="删除")
+    @RequiresPermissionsDesc(menu = {"商场管理", "通用问题"}, button = "删除")
     @PostMapping("/delete")
     public Object delete(@RequestBody LitemallIssue issue) {
         Integer id = issue.getId();

@@ -15,9 +15,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.NotNull;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/admin/ad")
@@ -29,7 +27,7 @@ public class AdminAdController {
     private LitemallAdService adService;
 
     @RequiresPermissions("admin:ad:list")
-    @RequiresPermissionsDesc(menu={"推广管理" , "广告管理"}, button="查询")
+    @RequiresPermissionsDesc(menu = {"推广管理", "广告管理"}, button = "查询")
     @GetMapping("/list")
     public Object list(String name, String content,
                        @RequestParam(defaultValue = "1") Integer page,
@@ -37,12 +35,7 @@ public class AdminAdController {
                        @Sort @RequestParam(defaultValue = "add_time") String sort,
                        @Order @RequestParam(defaultValue = "desc") String order) {
         List<LitemallAd> adList = adService.querySelective(name, content, page, limit, sort, order);
-        int total = adService.countSelective(name, content, page, limit, sort, order);
-        Map<String, Object> data = new HashMap<>();
-        data.put("total", total);
-        data.put("items", adList);
-
-        return ResponseUtil.ok(data);
+        return ResponseUtil.okList(adList);
     }
 
     private Object validate(LitemallAd ad) {
@@ -58,7 +51,7 @@ public class AdminAdController {
     }
 
     @RequiresPermissions("admin:ad:create")
-    @RequiresPermissionsDesc(menu={"推广管理" , "广告管理"}, button="添加")
+    @RequiresPermissionsDesc(menu = {"推广管理", "广告管理"}, button = "添加")
     @PostMapping("/create")
     public Object create(@RequestBody LitemallAd ad) {
         Object error = validate(ad);
@@ -70,15 +63,15 @@ public class AdminAdController {
     }
 
     @RequiresPermissions("admin:ad:read")
-    @RequiresPermissionsDesc(menu={"推广管理" , "广告管理"}, button="详情")
+    @RequiresPermissionsDesc(menu = {"推广管理", "广告管理"}, button = "详情")
     @GetMapping("/read")
     public Object read(@NotNull Integer id) {
-        LitemallAd brand = adService.findById(id);
-        return ResponseUtil.ok(brand);
+        LitemallAd ad = adService.findById(id);
+        return ResponseUtil.ok(ad);
     }
 
     @RequiresPermissions("admin:ad:update")
-    @RequiresPermissionsDesc(menu={"推广管理" , "广告管理"}, button="编辑")
+    @RequiresPermissionsDesc(menu = {"推广管理", "广告管理"}, button = "编辑")
     @PostMapping("/update")
     public Object update(@RequestBody LitemallAd ad) {
         Object error = validate(ad);
@@ -93,7 +86,7 @@ public class AdminAdController {
     }
 
     @RequiresPermissions("admin:ad:delete")
-    @RequiresPermissionsDesc(menu={"推广管理" , "广告管理"}, button="删除")
+    @RequiresPermissionsDesc(menu = {"推广管理", "广告管理"}, button = "删除")
     @PostMapping("/delete")
     public Object delete(@RequestBody LitemallAd ad) {
         Integer id = ad.getId();

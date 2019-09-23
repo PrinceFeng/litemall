@@ -1,5 +1,6 @@
 package org.linlinjava.litemall.wx.web;
 
+import com.github.pagehelper.PageInfo;
 import com.mysql.jdbc.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -10,7 +11,6 @@ import org.linlinjava.litemall.core.validator.Sort;
 import org.linlinjava.litemall.db.domain.*;
 import org.linlinjava.litemall.db.service.*;
 import org.linlinjava.litemall.wx.annotation.LoginUser;
-import org.linlinjava.litemall.wx.service.GetRegionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -104,7 +104,7 @@ public class WxGoodsController {
 		Callable<List> productListCallable = () -> productService.queryByGid(id);
 
 		// 商品问题，这里是一些通用问题
-		Callable<List> issueCallable = () -> goodsIssueService.query();
+		Callable<List> issueCallable = () -> goodsIssueService.querySelective("", 1, 4, "", "");
 
 		// 商品品牌商
 		Callable<LitemallBrand> brandCallable = ()->{
@@ -122,15 +122,15 @@ public class WxGoodsController {
 		Callable<Map> commentsCallable = () -> {
 			List<LitemallComment> comments = commentService.queryGoodsByGid(id, 0, 2);
 			List<Map<String, Object>> commentsVo = new ArrayList<>(comments.size());
-			int commentCount = commentService.countGoodsByGid(id, 0, 2);
+			long commentCount = PageInfo.of(comments).getTotal();
 			for (LitemallComment comment : comments) {
 				Map<String, Object> c = new HashMap<>();
 				c.put("id", comment.getId());
 				c.put("addTime", comment.getAddTime());
 				c.put("content", comment.getContent());
 				LitemallUser user = userService.findById(comment.getUserId());
-				c.put("nickname", user.getNickname());
-				c.put("avatar", user.getAvatar());
+				c.put("nickname", user == null ? "" : user.getNickname());
+				c.put("avatar", user == null ? "" : user.getAvatar());
 				c.put("picList", comment.getPicUrls());
 				commentsVo.add(c);
 			}
@@ -186,6 +186,9 @@ public class WxGoodsController {
 			data.put("attribute", goodsAttributeListTask.get());
 			data.put("brand", brandCallableTask.get());
 			data.put("groupon", grouponRulesCallableTask.get());
+			//SystemConfig.isAutoCreateShareImage()
+			data.put("share", SystemConfig.isAutoCreateShareImage());
+
 		}
 		catch (Exception e) {
 			e.printStackTrace();
@@ -236,7 +239,7 @@ public class WxGoodsController {
 	 * @param isHot      是否热买，可选
 	 * @param userId     用户ID
 	 * @param page       分页页数
-	 * @param size       分页大小
+	 * @param limit       分页大小
 	 * @param sort       排序方式，支持"add_time", "retail_price"或"name"
 	 * @param order      排序类型，顺序或者降序
 	 * @return 根据条件搜素的商品详情
@@ -250,7 +253,7 @@ public class WxGoodsController {
 		Boolean isHot,
 		@LoginUser Integer userId,
 		@RequestParam(defaultValue = "1") Integer page,
-		@RequestParam(defaultValue = "10") Integer size,
+		@RequestParam(defaultValue = "10") Integer limit,
 		@Sort(accepts = {"add_time", "retail_price", "name"}) @RequestParam(defaultValue = "add_time") String sort,
 		@Order @RequestParam(defaultValue = "desc") String order) {
 
@@ -264,8 +267,7 @@ public class WxGoodsController {
 		}
 
 		//查询列表数据
-		List<LitemallGoods> goodsList = goodsService.querySelective(categoryId, brandId, keyword, isHot, isNew, page, size, sort, order);
-		int total = goodsService.countSelective(categoryId, brandId, keyword, isHot, isNew, page, size, sort, order);
+		List<LitemallGoods> goodsList = goodsService.querySelective(categoryId, brandId, keyword, isHot, isNew, page, limit, sort, order);
 
 		// 查询商品所属类目列表。
 		List<Integer> goodsCatIds = goodsService.getCatIds(brandId, keyword, isHot, isNew);
@@ -276,44 +278,18 @@ public class WxGoodsController {
 			categoryList = new ArrayList<>(0);
 		}
 
-		Map<String, Object> data = new HashMap<>();
-		data.put("goodsList", goodsList);
-		data.put("filterCategoryList", categoryList);
-		data.put("count", total);
-		return ResponseUtil.ok(data);
-	}
+		PageInfo<LitemallGoods> pagedList = PageInfo.of(goodsList);
 
-	/**
-	 * 新品首发页面的横幅
-	 *
-	 * @return 新品首发页面的横幅
-	 */
-	@GetMapping("new")
-	public Object newGoods() {
-		Map<String, String> bannerInfo = new HashMap<>();
-		bannerInfo.put("url", "");
-		bannerInfo.put("name", SystemConfig.getNewBannerTitle());
-		bannerInfo.put("imgUrl", SystemConfig.getNewImageUrl());
+		Map<String, Object> entity = new HashMap<>();
+		entity.put("list", goodsList);
+		entity.put("total", pagedList.getTotal());
+		entity.put("page", pagedList.getPageNum());
+		entity.put("limit", pagedList.getPageSize());
+		entity.put("pages", pagedList.getPages());
+		entity.put("filterCategoryList", categoryList);
 
-		Map<String, Object> data = new HashMap<>();
-		data.put("bannerInfo", bannerInfo);
-		return ResponseUtil.ok(data);
-	}
-
-	/**
-	 * 人气推荐页面的横幅
-	 *
-	 * @return 人气推荐页面的横幅
-	 */
-	@GetMapping("hot")
-	public Object hotGoods() {
-		Map<String, String> bannerInfo = new HashMap<>();
-		bannerInfo.put("url", "");
-		bannerInfo.put("name", SystemConfig.getHotBannerTitle());
-		bannerInfo.put("imgUrl", SystemConfig.getHotImageUrl());
-		Map<String, Object> data = new HashMap<>();
-		data.put("bannerInfo", bannerInfo);
-		return ResponseUtil.ok(data);
+		// 因为这里需要返回额外的filterCategoryList参数，因此不能方便使用ResponseUtil.okList
+		return ResponseUtil.ok(entity);
 	}
 
 	/**
@@ -335,9 +311,7 @@ public class WxGoodsController {
 		// 查找六个相关商品
 		int related = 6;
 		List<LitemallGoods> goodsList = goodsService.queryByCategory(cid, 0, related);
-		Map<String, Object> data = new HashMap<>();
-		data.put("goodsList", goodsList);
-		return ResponseUtil.ok(data);
+		return ResponseUtil.okList(goodsList);
 	}
 
 	/**
@@ -348,9 +322,7 @@ public class WxGoodsController {
 	@GetMapping("count")
 	public Object count() {
 		Integer goodsCount = goodsService.queryOnSale();
-		Map<String, Object> data = new HashMap<>();
-		data.put("goodsCount", goodsCount);
-		return ResponseUtil.ok(data);
+		return ResponseUtil.ok(goodsCount);
 	}
 
 }

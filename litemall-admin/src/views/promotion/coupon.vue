@@ -16,7 +16,7 @@
     </div>
 
     <!-- 查询结果 -->
-    <el-table v-loading="listLoading" :data="list" size="small" element-loading-text="正在查询中。。。" border fit highlight-current-row>
+    <el-table v-loading="listLoading" :data="list" element-loading-text="正在查询中。。。" border fit highlight-current-row>
 
       <el-table-column align="center" label="优惠券ID" prop="id" sortable/>
 
@@ -119,11 +119,11 @@
         </el-form-item>
         <el-form-item v-show="dataForm.timeType === 1">
           <el-col :span="11">
-            <el-date-picker v-model="dataForm.startTime" type="datetime" placeholder="选择日期" style="width: 100%;"/>
+            <el-date-picker v-model="dataForm.startTime" type="datetime" placeholder="选择日期" value-format="yyyy-MM-dd HH:mm:ss" style="width: 100%;"/>
           </el-col>
           <el-col :span="2" class="line">至</el-col>
           <el-col :span="11">
-            <el-date-picker v-model="dataForm.endTime" type="datetime" placeholder="选择日期" style="width: 100%;"/>
+            <el-date-picker v-model="dataForm.endTime" type="datetime" placeholder="选择日期" value-format="yyyy-MM-dd HH:mm:ss" style="width: 100%;"/>
           </el-col>
         </el-form-item>
         <el-form-item label="商品限制范围">
@@ -245,7 +245,7 @@ export default {
     return {
       typeOptions: Object.assign({}, defaultTypeOptions),
       statusOptions: Object.assign({}, defaultStatusOptions),
-      list: undefined,
+      list: [],
       total: 0,
       listLoading: true,
       listQuery: {
@@ -297,7 +297,7 @@ export default {
       this.listLoading = true
       listCoupon(this.listQuery)
         .then(response => {
-          this.list = response.data.data.items
+          this.list = response.data.data.list
           this.total = response.data.data.total
           this.listLoading = false
         })
